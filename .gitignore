@@ -29,6 +29,7 @@ ENV/
 .env
 .env.local
 .env.*.local
+.env.dev
 
 # IDE
 .vscode/
@@ -70,10 +71,12 @@ htmlcov/
 dmypy.json
 
 # temporary files
-.to_do.txt
+.todo.txt
 current_structure.txt
 data_flow_arch.txt
 prjct_arch.txt
 proposed_structure.txt
 traceback.txt
 README.md.old
+mas_banner.png
+mas_banner-min.png
