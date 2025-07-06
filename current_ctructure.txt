@@ -1,0 +1,137 @@
+.
+├── app
+│   ├── api
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   └── routes
+│   ├── config.py
+│   ├── core
+│   │   ├── analysis
+│   │   ├── data_processing
+│   │   ├── __init__.py
+│   │   ├── recommendations
+│   │   └── visualization
+│   ├── db
+│   │   ├── crud.py
+│   │   ├── database.py
+│   │   ├── __init__.py
+│   │   ├── models.py
+│   │   ├── __pycache__
+│   │   └── schemas.py
+│   ├── __init__.py
+│   ├── main.py
+│   ├── __pycache__
+│   │   ├── config.cpython-311.pyc
+│   │   ├── __init__.cpython-311.pyc
+│   │   └── main.cpython-311.pyc
+│   ├── services
+│   │   ├── data_service.py
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   └── utils
+│       └── __init__.py
+├── current_ctructure.txt
+├── data
+│   ├── exports
+│   ├── models
+│   ├── processed
+│   └── raw
+├── data_flow_arch.txt
+├── docker-compose.yml
+├── Dockerfile
+├── docs
+├── music_analysis_system.egg-info
+│   ├── dependency_links.txt
+│   ├── PKG-INFO
+│   ├── requires.txt
+│   ├── SOURCES.txt
+│   └── top_level.txt
+├── notebooks
+├── prjct_arch.txt
+├── proposed_structure.txt
+├── pyproject.toml
+├── README.md
+├── requirements.txt
+├── scripts
+│   ├── debug_imports.py
+│   ├── __init__.py
+│   ├── init.sql
+│   ├── __pycache__
+│   │   ├── __init__.cpython-311.pyc
+│   │   └── setup_db.cpython-311.pyc
+│   └── setup_db.py
+├── tests
+│   ├── test_api
+│   ├── test_core
+│   └── test_utils
+└── venv
+    ├── bin
+    │   ├── activate
+    │   ├── activate.csh
+    │   ├── activate.fish
+    │   ├── Activate.ps1
+    │   ├── alembic
+    │   ├── black
+    │   ├── blackd
+    │   ├── celery
+    │   ├── dmypy
+    │   ├── dotenv
+    │   ├── estimator_ckpt_converter
+    │   ├── f2py
+    │   ├── f2py3
+    │   ├── f2py3.11
+    │   ├── flake8
+    │   ├── fonttools
+    │   ├── google-oauthlib-tool
+    │   ├── httpx
+    │   ├── import_pb_to_tensorboard
+    │   ├── mako-render
+    │   ├── markdown_py
+    │   ├── mypy
+    │   ├── mypyc
+    │   ├── normalizer
+    │   ├── pip
+    │   ├── pip3
+    │   ├── pip3.11
+    │   ├── pycodestyle
+    │   ├── pyflakes
+    │   ├── pyftmerge
+    │   ├── pyftsubset
+    │   ├── pyrsa-decrypt
+    │   ├── pyrsa-encrypt
+    │   ├── pyrsa-keygen
+    │   ├── pyrsa-priv2pub
+    │   ├── pyrsa-sign
+    │   ├── pyrsa-verify
+    │   ├── py.test
+    │   ├── pytest
+    │   ├── python -> python3.11
+    │   ├── python3 -> python3.11
+    │   ├── python3.11 -> /usr/bin/python3.11
+    │   ├── saved_model_cli
+    │   ├── stubgen
+    │   ├── stubtest
+    │   ├── tensorboard
+    │   ├── tflite_convert
+    │   ├── tf_upgrade_v2
+    │   ├── toco
+    │   ├── toco_from_protos
+    │   ├── ttx
+    │   ├── uvicorn
+    │   ├── watchfiles
+    │   ├── websockets
+    │   └── wheel
+    ├── etc
+    │   └── jupyter
+    ├── include
+    │   ├── python3.11
+    │   └── site
+    ├── lib
+    │   └── python3.11
+    ├── lib64 -> lib
+    ├── pyvenv.cfg
+    └── share
+        ├── jupyter
+        └── man
+
+44 directories, 91 files
