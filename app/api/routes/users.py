@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 from app.models.user import User as UserModel
 from app.schemas.user import User, UserCreate
-from app.api.deps import get_db_session
+from app.api.deps import get_db_session, get_current_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -58,4 +58,16 @@ async def get_user_summary(
             "total_listening_events": total_listens,
             "member_since": user.created_at
         }
+    }
+
+
+@router.get("/me", tags=["Users"])
+async def get_current_user_info(
+    current_user: UserModel = Depends(get_current_user)
+) -> dict:
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "username": current_user.username,
+        "created_at": current_user.created_at.isoformat()
     }

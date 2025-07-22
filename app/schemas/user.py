@@ -9,7 +9,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    id: str
+    id: Optional[str] = None
 
 
 class User(UserBase):

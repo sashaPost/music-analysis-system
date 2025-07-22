@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     # --- External APIs ---
     spotify_client_id: Optional[str] = None
     spotify_client_secret: Optional[str] = None
+    spotify_redirect_uri: Optional[str] = None
 
     # --- ML / Model Config ---
     model_path: str = "./data/models/"
