@@ -3,6 +3,7 @@ alembic==1.12.1
 amqp==5.3.1
 annotated-types==0.7.0
 anyio==4.9.0
+asgi-lifespan==2.1.0
 astunparse==1.6.3
 async-timeout==5.0.1
 asyncpg==0.30.0
@@ -52,7 +53,7 @@ MarkupSafe==3.0.2
 matplotlib==3.8.2
 mccabe==0.7.0
 ml-dtypes==0.2.0
--e git+ssh://git@github.com/sashaPost/music-analysis-system.git@4493e26c7542a2bd13f5fda62205ab6b99104521#egg=music_analysis_system
+-e git+ssh://git@github.com/sashaPost/music-analysis-system.git@3d0c3cf7b323d8aa2ebae0edf64636bd3086f04a#egg=music_analysis_system
 mypy==1.7.1
 mypy_extensions==1.1.0
 numpy==1.25.2

@@ -1,20 +1,40 @@
+from asgi_lifespan import LifespanManager
+import asyncio
+from collections.abc import AsyncGenerator
+from httpx import AsyncClient, ASGITransport
+import pytest
 import pytest_asyncio
-from typing import AsyncGenerator
+from starlette.types import ASGIApp
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    create_async_engine,
+    async_sessionmaker
+)
+from typing import cast
+import uuid
 
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-
-from app.main import app
-from app.db.database import Base, get_db
 from app.config import settings
+from app.crud.user_crud import UserCRUD
+from app.db.database import Base, get_db
+from app.main import app
+from app.models.user import User
+from app.schemas.user import UserCreate
 
 TEST_DB_URL = settings.database_url + "_test"
 engine_test = create_async_engine(TEST_DB_URL, echo=True)
-SessionTest = async_sessionmaker(engine_test, expire_on_commit=False)
+TestSessionLocal = async_sessionmaker(engine_test, expire_on_commit=False)
 
 
-@pytest_asyncio.fixture()
-async def test_db() -> AsyncGenerator[None, None]:
+@pytest.fixture(scope="session")
+def event_loop():
+    """Session-wide event loop for session-scoped async fixtures like prepare_database"""
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def prepare_database():
     async with engine_test.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
@@ -24,18 +44,49 @@ async def test_db() -> AsyncGenerator[None, None]:
 
 @pytest_asyncio.fixture()
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    async with SessionTest() as session:
+    async with TestSessionLocal() as session:
         yield session
+
+
+@pytest_asyncio.fixture()
+async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    async def _get_test_db():
+        yield db_session  
+
+    app.dependency_overrides[get_db] = _get_test_db
+    transport = ASGITransport(app=cast(ASGIApp, app))   # type: ignore[arg-type]
+    async with LifespanManager(app):
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            yield ac
+    app.dependency_overrides.clear()
 
 
 
 @pytest_asyncio.fixture()
-async def client(test_db: None) -> AsyncGenerator[AsyncClient, None]:
-    async def _get_test_db() -> AsyncGenerator[AsyncSession, None]:
-        async with SessionTest() as session:
-            yield session
+async def test_user(db_session: AsyncSession) -> User:
+    user_data = UserCreate(
+        username=f"user-{uuid.uuid4().hex[:8]}",
+        email=f"test-{uuid.uuid4()}@example.com"
+    )
+    user = await UserCRUD().create_user_with_social_account(
+        db=db_session,
+        user_data=user_data,
+        provider="spotify",
+        provider_user_id=str(uuid.uuid4()),
+        access_token="token",
+        refresh_token="refresh",
+        expires_in=3600
+    )
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
 
-    app.dependency_overrides[get_db] = _get_test_db
-    async with AsyncClient(app=app, base_url="http://test") as c:
-        yield c
-    app.dependency_overrides.clear()
+
+@pytest_asyncio.fixture()
+async def test_user_token(test_user: User) -> str:
+    from app.core.security import create_access_token
+    from datetime import timedelta
+    return create_access_token(
+        data={"sub": test_user.id},
+        expires_delta=timedelta(minutes=30)
+    )

@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.api.routes import data, users, api_router
+from app.api.routes import api_router
 # from app.api.routes import data, analysis, visualization
 
 
@@ -58,21 +58,7 @@ async def health_check() -> dict:
     }
 
 
-app.include_router(
-    users.router,
-    prefix=settings.api_v1_prefix + "/users", 
-    tags=["users"]
-)
-
-app.include_router(
-    data.router,
-    prefix=settings.api_v1_prefix + "/data",
-    tags=["data"]
-)
-
 app.include_router(api_router, prefix=settings.api_v1_prefix)
-
-# app.include_router(analysis.router, prefix=settings.api_v1_prefix + "/analysis", tags=["analysis"])
 
 
 if __name__ == "__main__":

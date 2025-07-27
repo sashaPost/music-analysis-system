@@ -1,13 +1,18 @@
-from sqlalchemy import Column, String, ForeignKey, DateTime
+from sqlalchemy import Column, String, ForeignKey, DateTime, text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-from app.db.database import Base
+import uuid
 
+from app.db.database import Base
 
 class SocialAccount(Base):
     __tablename__ = "social_accounts"
-
-    id = Column(String, primary_key=True, index=True)
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()")
+    )
     provider = Column(String, nullable=False)
     provider_user_id = Column(String, nullable=False, index=True)
     access_token = Column(String, nullable=False)

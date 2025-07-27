@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     debug: bool = False
     secret_key: str = Field(..., min_length=16)
+    algorithm: str = "HS256"
 
     # --- External APIs ---
     spotify_client_id: Optional[str] = None

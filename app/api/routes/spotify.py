@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from app.services.spotify import SpotifyService
-from app.config import Settings
+from app.config import settings
 
-router = APIRouter()
+router = APIRouter(prefix="/categories", tags=["Spotify"])
 
-@router.get("/categories", tags=["Spotify"])
-async def get_categories(settings: Settings = Depends(Settings)) -> dict:
-    service = SpotifyService(settings)
-    return await service.get_featured_categories()
+@router.get("")
+async def get_categories() -> dict:
+    return await SpotifyService(settings).get_featured_categories()

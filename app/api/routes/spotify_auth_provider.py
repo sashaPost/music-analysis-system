@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
 
@@ -10,10 +10,10 @@ from app.schemas.user import UserCreate
 from app.schemas.token import TokenResponse
 from app.core.security import create_access_token
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.get("/auth/login", tags=["MusicAuth"])
+@router.get("/login")
 async def login(
     provider: str = Query(...), 
     state: str = "dev-state"
@@ -26,20 +26,18 @@ async def login(
         raise HTTPException(
             status_code=400, 
             detail=str(e)
-        ) from e
+        )
 
 
 @router.get(
-    "/auth/{provider}/callback", 
+    "/{provider}/callback", 
     response_model=TokenResponse,
-    tags=["MusicAuth"]
 )
 async def callback(
     provider: str, 
     code: str = Query(...),
     state: str = Query(...),
     db: AsyncSession = Depends(get_db)
-# ) -> JSONResponse:
 ) -> TokenResponse:
     try:
         service = get_provider(provider)
@@ -73,18 +71,7 @@ async def callback(
             data={"sub": user.id},
             expires_delta=timedelta(minutes=30)  
         )
-
         return TokenResponse(access_token=access_token, user=user)
-
-        # return JSONResponse({
-        #     "user": {
-        #         "id": user.id,
-        #         "email": user.email,
-        #         "username": user.username,
-        #     },
-        #     "provider": provider,
-        #     "provider_user_id": provider_user_id
-        # })
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

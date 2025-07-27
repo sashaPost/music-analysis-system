@@ -43,14 +43,12 @@ async def get_user_listening_history(
     offset: int = 0,
     db: AsyncSession = Depends(get_db)
 ) -> dict[str, Any]:
-    crud = ListeningEventCRUD()
-    if not hasattr(crud, "get_user_listening_history"):
-        raise HTTPException(
-            status_code=500, 
-            detail="Method get_user_listening_history not implemented."
-        )
-
-    events = await crud.get_user_listening_history(db, user_id, limit, offset)
+    events = await ListeningEventCRUD().get_user_listening_history(
+        db,
+        user_id,
+        limit,
+        offset
+    )
     return {
         "user_id": user_id,
         "events": [ListeningEvent.model_validate(ev) for ev in events],
@@ -65,11 +63,6 @@ async def get_user_stats(
     user_id: str,
     db: AsyncSession = Depends(get_db)
 ) -> dict[str, Any]:
-    if not hasattr(data_service, "get_user_stats"):
-        raise HTTPException(
-            status_code=500, 
-            detail="Method get_user_stats not implemented in DataService."
-        )
     return await data_service.get_user_stats(user_id, db)
 
 
@@ -81,17 +74,10 @@ async def get_track(track_id: str, db: AsyncSession = Depends(get_db)) -> Track:
     return Track.model_validate(track)
 
 
-@router.get("/artists/{artist_id}/tracks")
+@router.get("/artists/{artist_id}/tracks", response_model=list[Track])
 async def get_artist_tracks(
     artist_id: str, 
     db: AsyncSession = Depends(get_db)
 ) -> list[Track]:
-    crud = TrackCRUD()
-    if not hasattr(crud, "get_tracks_by_artist"):
-        raise HTTPException(
-            status_code=500, 
-            detail="Method get_tracks_by_artist not implemented."
-        )
-
-    tracks = await crud.get_tracks_by_artist(db, artist_id)
+    tracks = await TrackCRUD().get_tracks_by_artist(db, artist_id)
     return [Track.model_validate(track) for track in tracks]
