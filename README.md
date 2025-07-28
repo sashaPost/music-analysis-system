@@ -12,6 +12,7 @@ This is a Python-based backend system for analyzing user music taste and generat
 - Clean modular FastAPI backend
 - Async SQLAlchemy + PostgreSQL + Redis
 - Pytest-based test suite with isolated test DB
+- 100% test coverage on core CRUD and route modules
 
 ---
 
