@@ -1,25 +1,33 @@
+from httpx import Response
 import pytest
 import respx
-from httpx import Response
 
-from app.config import Settings
+from app.config import settings
+from app.constants.spotify import SPOTIFY_API_BASE_URL, SPOTIFY_TOKEN_URL
 from app.services.spotify import SpotifyService
 
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_get_featured_categories():
-    token_route = respx.post("https://accounts.spotify.com/api/token").mock(
-        return_value=Response(200, json={"access_token": "fake-token"})
-    )
-    categories_route = respx.get("https://api.spotify.com/v1/browse/categories").mock(
-        return_value=Response(200, json={"categories": {"items": []}})
+async def test_get_featured_categories() -> None:
+    respx.post(SPOTIFY_TOKEN_URL).mock(
+        return_value=Response(200, json={"access_token": "mock-token"})
     )
 
-    settings = Settings(spotify_client_id="id", spotify_client_secret="secret")
+    respx.get(f"{SPOTIFY_API_BASE_URL}/browse/categories").mock(
+        return_value=Response(200, json={
+            "categories": {
+                "items": [
+                    {"id": "pop", "name": "Pop"},
+                    {"id": "rock", "name": "Rock"}
+                ]
+            }
+        })
+    )
+
     service = SpotifyService(settings)
-    result = await service.get_featured_categories()
+    response = await service.get_featured_categories()
 
-    assert "categories" in result
-    assert token_route.called
-    assert categories_route.called
+    assert "categories" in response
+    assert isinstance(response["categories"]["items"], list)
+    assert len(response["categories"]["items"]) == 2

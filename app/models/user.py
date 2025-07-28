@@ -15,7 +15,11 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    listening_events = relationship("ListeningEvent", back_populates="user")
+    listening_events = relationship(
+        "ListeningEvent",
+        back_populates="user",
+        lazy="selectin"
+    )
     playlists = relationship("Playlist", back_populates="user")
     genre_preferences = relationship("UserGenrePreference", back_populates="user")
     social_accounts = relationship(

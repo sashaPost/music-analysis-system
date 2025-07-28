@@ -28,3 +28,20 @@ class TrackCRUD:
         await db.commit()
         await db.refresh(track)
         return track
+    
+    @staticmethod
+    async def get_or_create_track(
+        db: AsyncSession,
+        track_data: TrackCreate
+    ) -> Track:
+        result = await db.execute(
+            select(Track).where(
+                Track.name == track_data.name,
+                Track.artist_id == track_data.artist_id,
+                Track.album_id == track_data.album_id
+            )
+        )
+        track = result.scalar_one_or_none()
+        if track:
+            return track
+        return await TrackCRUD.create_track(db, track_data)

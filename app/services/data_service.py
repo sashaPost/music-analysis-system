@@ -3,13 +3,21 @@ from sqlalchemy import select, func
 from typing import Dict, List, Any
 from datetime import datetime
 import logging
+from uuid import uuid4
 
-from app.models import User, Track, Artist
-from app.models.listening_event import ListeningEvent
-from app.schemas.user import UserCreate
+from app.crud.artist_crud import ArtistCRUD
+from app.crud.album_crud import AlbumCRUD
+from app.crud.track_crud import TrackCRUD
 from app.crud.user_crud import UserCRUD
+from app.models.listening_event import ListeningEvent
+from app.schemas.track import TrackCreate
+from app.schemas.user import UserCreate, User as UserSchema
 
 logger = logging.getLogger(__name__)
+
+artist_crud = ArtistCRUD()
+album_crud = AlbumCRUD()
+track_crud = TrackCRUD()
 
 
 class DataService:
@@ -23,41 +31,57 @@ class DataService:
     ) -> Dict[str, int]:
         """Process Spotify listening history data"""
         user = await UserCRUD().get_user_by_id(db, user_id)
-        if user is None:
+        if not user:
             user_create = UserCreate(id=user_id, username=user_id)
             user = await UserCRUD().create_user(db, user_create)
 
+        processed = 0
+        skipped = 0
 
-        processed_records = 0
-        skipped_records = 0
-        for record in data:
-            if not self._is_valid_spotify_record(record):
-                skipped_records += 1
-                continue
-
-            played_at_str = record.get("ts")
-            if not played_at_str:
-                skipped_records += 1
-                continue
-
+        for item in data:
             try:
-                played_at = datetime.fromisoformat(played_at_str.replace("Z", "+00:00"))
-            except ValueError:
-                skipped_records += 1
-                continue
+                played_at = datetime.fromisoformat(item["ts"].replace("Z", "+00:00"))
+                ms_played = int(item.get("ms_played", 0))
+                track_name = item.get("master_metadata_track_name")
+                artist_name = item.get("master_metadata_album_artist_name")
+                album_name = item.get("master_metadata_album_album_name")
 
-            track_name = record.get("master_metadata_track_name", "Unknown")
-            artist_name = record.get("master_metadata_album_artist_name", "Unknown Artist")
-            album_name = record.get("master_metadata_album_album_name", "Unknown Album")
-            duration_ms = record.get("ms_played", 0)
+                if not track_name or not artist_name or not album_name or ms_played == 0:
+                    skipped += 1
+                    continue
 
-            logger.debug(f"Processed track: {track_name}, by {artist_name}")
+                artist = await artist_crud.get_or_create_by_name(db, artist_name)
 
-            # Simulate logic here. Replace with actual inserts/checks later.
-            processed_records += 1
+                album = await album_crud.get_or_create_by_name_and_artist(
+                    db, album_name,
+                    str(artist.id)
+                )
 
+                track_data = TrackCreate(
+                    id=str(uuid4()),
+                    name=track_name,
+                    duration_ms=ms_played,
+                    artist_id=str(artist.id),
+                    album_id=str(album.id),
+                )
+
+                track = await track_crud.get_or_create_track(db, track_data)
+
+                event = ListeningEvent(
+                    user_id=user.id,
+                    track_id=track.id,
+                    played_at=played_at,
+                    duration_ms=ms_played,
+                    progress_ms=0,
+                    skipped=False,
+                )
+                db.add(event)
+                processed += 1
+            except Exception:
+                logger.exception("Error processing item: %s", item)
+                skipped += 1
         await db.commit()
-        return {"processed": processed_records, "skipped": skipped_records}
+        return {"processed": processed, "skipped": skipped}
 
     def _is_valid_spotify_record(self, record: Dict[str, Any]) -> bool:
         return record.get("ts") is not None and record.get("ms_played", 0) > 0
@@ -66,7 +90,11 @@ class DataService:
             self, 
             user_id: str, 
             db: AsyncSession
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
+        user = await UserCRUD().get_user_by_id(db, user_id)
+        if user is None:
+            return None
+        
         result = await db.execute(
             select(
                 func.count(ListeningEvent.id),
@@ -75,10 +103,17 @@ class DataService:
                 func.max(ListeningEvent.played_at)
             ).where(ListeningEvent.user_id == user_id)
         )
-        total_count, total_duration, first_play, last_play = result.one_or_none() or (0, 0, None, None)
+        
+        total_count, total_duration, first_play, last_play = (
+            result.one_or_none() or (0, 0, None, None)
+        )
+        
         return {
-        "total_listens": total_count,
-        "total_played_ms": total_duration,
-        "first_played": first_play,
-        "last_played": last_play
-    }
+            "user": UserSchema.model_validate(user),
+            "stats": {
+                "total_listens": total_count,
+                "total_played_ms": total_duration or 0,
+                "first_played": first_play,
+                "last_played": last_play
+            }
+        }

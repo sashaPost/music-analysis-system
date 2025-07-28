@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from typing import Dict, Any
 from uuid import UUID
 
-from app.models.user import User as UserModel
+from app.models.user import User
 from app.schemas.user import UserCreate, User as UserOut 
 from app.api.deps import get_db_session, get_current_user
 
@@ -20,9 +20,9 @@ router = APIRouter(prefix="/users", tags=["Users"])
 async def create_user(
     user: UserCreate,
     db: AsyncSession = Depends(get_db_session)
-) -> UserModel:
+) -> User:
     """Create a new user"""
-    db_user = UserModel(**user.model_dump())
+    db_user = User(**user.model_dump())
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
@@ -31,7 +31,7 @@ async def create_user(
 
 @router.get("/me", response_model=UserOut)
 async def get_current_user_info(
-    current_user: UserModel = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ) -> UserOut:
     return current_user
 
@@ -40,10 +40,10 @@ async def get_current_user_info(
 async def read_user(
     user_id: UUID, 
     db: AsyncSession = Depends(get_db_session)
-) -> UserModel:
+) -> User:
     result = await db.execute(
-        select(UserModel)
-        .where(UserModel.id == str(user_id))
+        select(User)
+        .where(User.id == str(user_id))
     )
     user = result.scalar_one_or_none()
     if user is None:
@@ -57,12 +57,36 @@ async def get_user_summary(
     db: AsyncSession = Depends(get_db_session)
 ) -> Dict[str, Any]:
     """Get user summary with basic statistics"""
-    result = await db.execute(
-        select(UserModel)
-        .options(selectinload(UserModel.listening_events))
-        .where(UserModel.id == str(user_id))
-    )
-    user = result.scalar_one_or_none()    
+    user = (await db.scalars(
+        select(User)
+        .options(selectinload(User.listening_events))
+        .where(User.id == str(user_id))
+    )).first()
+
+    # result = await db.execute(
+    #     select(User)
+    #     .options(selectinload(User.listening_events))
+    #     .where(User.id == str(user_id))
+    # )
+    
+    # # DEBUG:
+    # row = result.fetchone()
+    # print("ROW:", row)
+    
+    # user = result.scalars().first()
+    # # user = result.scalar_one_or_none()   
+    # # user = row[0] if row else None 
+
+    # # TEMP:
+    # # Fallback for test context identity mismatch
+    # if user is None:
+    #     row = result.first()
+    #     if row:
+    #         user = row[0]
+    
+    # DEBUG:
+    print("LOADED USER:", user)
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     

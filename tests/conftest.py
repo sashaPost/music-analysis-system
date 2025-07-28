@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import (
 from typing import cast
 import uuid
 
+from app.api.deps import get_db_session
 from app.config import settings
 from app.crud.user_crud import UserCRUD
 from app.db.database import Base, get_db
@@ -54,12 +55,13 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield db_session  
 
     app.dependency_overrides[get_db] = _get_test_db
+    app.dependency_overrides[get_db_session] = _get_test_db
+
     transport = ASGITransport(app=cast(ASGIApp, app))   # type: ignore[arg-type]
     async with LifespanManager(app):
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             yield ac
     app.dependency_overrides.clear()
-
 
 
 @pytest_asyncio.fixture()
@@ -78,7 +80,7 @@ async def test_user(db_session: AsyncSession) -> User:
         expires_in=3600
     )
     await db_session.commit()
-    await db_session.refresh(user)
+    await db_session.refresh(user, attribute_names=["listening_events"])
     return user
 
 
@@ -87,6 +89,6 @@ async def test_user_token(test_user: User) -> str:
     from app.core.security import create_access_token
     from datetime import timedelta
     return create_access_token(
-        data={"sub": test_user.id},
+        data={"sub": str(test_user.id)},
         expires_delta=timedelta(minutes=30)
     )

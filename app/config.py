@@ -4,11 +4,11 @@ from typing import Optional
 import os
 import logging
 
-# Enable basic logging for debugging
+__all__ = ["settings"]
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Runtime environment file override
 ENV = os.getenv("ENV", "dev")
 ENV_FILE = f".env.{ENV}"
 logger.debug(f"Loading environment config from: {ENV_FILE}")
@@ -47,6 +47,6 @@ class Settings(BaseSettings):
     )
 
 
-settings = Settings()
+settings = Settings()   # type: ignore[call-arg]
 logger.debug("Loaded config:")
 logger.debug(settings.model_dump())
