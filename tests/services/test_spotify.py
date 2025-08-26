@@ -4,7 +4,7 @@ import respx
 
 from app.config import settings
 from app.constants.spotify import SPOTIFY_API_BASE_URL, SPOTIFY_TOKEN_URL
-from app.services.spotify import SpotifyService
+from app.services.spotify_service import SpotifyService
 
 
 @pytest.mark.asyncio

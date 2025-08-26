@@ -47,7 +47,8 @@ class UserCRUD:
 
         token_expires_at = None
         if expires_in:
-            token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+            token_expires_at = datetime.now(timezone.utc) \
+                + timedelta(seconds=expires_in)
 
         account = SocialAccount(
             provider=provider,

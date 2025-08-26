@@ -8,10 +8,10 @@ from app.constants.spotify import (
     SPOTIFY_TOKEN_URL, 
     SPOTIFY_API_BASE_URL,
 )
-from app.domain.music.interfaces.music_provider import MusicProvider
+from app.domain.music.interfaces.music_provider import IMusicProvider
 
 
-class SpotifyOAuthService(MusicProvider):
+class SpotifyOAuthService(IMusicProvider):
     SCOPE = "user-read-private user-read-email"
 
     def get_login_url(self, state: str) -> str:

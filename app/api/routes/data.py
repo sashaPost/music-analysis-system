@@ -1,24 +1,26 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from typing import Any
-from sqlalchemy.ext.asyncio import AsyncSession
 import json
 
-from app.db.database import get_db
-from app.services.data_service import DataService
+from app.api.deps import (
+    get_data_service,
+    get_listening_event_repository,
+    get_track_repository,
+)
+from app.repositories.listening_event import ListeningEventRepository
+from app.repositories.track import TrackRepository
 from app.schemas.track import Track
 from app.schemas.listening_event import ListeningEvent
-from app.crud.track_crud import TrackCRUD
-from app.crud.listening_event_crud import ListeningEventCRUD
+from app.services.data_service import DataService
 
 router = APIRouter(prefix="/data", tags=["Data Upload"])
-data_service = DataService()
 
 
 @router.post("/upload/spotify", status_code=status.HTTP_202_ACCEPTED)
 async def upload_spotify_data(
     file: UploadFile = File(...),
     user_id: str = "default_user",
-    db: AsyncSession = Depends(get_db)
+    service: DataService = Depends(get_data_service)
 ) -> dict[str, Any]:
     if file.content_type != "application/json":
         raise HTTPException(
@@ -32,7 +34,7 @@ async def upload_spotify_data(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Could not decode JSON.")
 
-    result = await data_service.process_spotify_data(data, user_id, db)
+    result = await service.process_spotify_data(data, user_id)
     return {"message": "Data uploaded and processed", "details": result}
 
 
@@ -41,10 +43,9 @@ async def get_user_listening_history(
     user_id: str,
     limit: int = 100,
     offset: int = 0,
-    db: AsyncSession = Depends(get_db)
+    repo: ListeningEventRepository = Depends(get_listening_event_repository)
 ) -> dict[str, Any]:
-    events = await ListeningEventCRUD().get_user_listening_history(
-        db,
+    events = await repo.get_user_listening_history(
         user_id,
         limit,
         offset
@@ -61,14 +62,20 @@ async def get_user_listening_history(
 @router.get("/users/{user_id}/stats")
 async def get_user_stats(
     user_id: str,
-    db: AsyncSession = Depends(get_db)
+    service: DataService = Depends(get_data_service)
 ) -> dict[str, Any]:
-    return await data_service.get_user_stats(user_id, db)
+    result = await service.get_user_stats(user_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return result
 
 
 @router.get("/tracks/{track_id}")
-async def get_track(track_id: str, db: AsyncSession = Depends(get_db)) -> Track:
-    track = await TrackCRUD().get_track_by_id(db, track_id)
+async def get_track(
+    track_id: str,
+    repo: TrackRepository = Depends(get_track_repository)
+) -> Track:
+    track = await repo.get_by_id(track_id)
     if not track:
         raise HTTPException(status_code=404, detail="Track not found")
     return Track.model_validate(track)
@@ -77,7 +84,7 @@ async def get_track(track_id: str, db: AsyncSession = Depends(get_db)) -> Track:
 @router.get("/artists/{artist_id}/tracks", response_model=list[Track])
 async def get_artist_tracks(
     artist_id: str, 
-    db: AsyncSession = Depends(get_db)
+    repo: TrackRepository = Depends(get_track_repository)
 ) -> list[Track]:
-    tracks = await TrackCRUD().get_tracks_by_artist(db, artist_id)
+    tracks = await repo.get_by_artist_id(artist_id)
     return [Track.model_validate(track) for track in tracks]

@@ -1,13 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
-from typing import Dict, Any
+from typing import Any, Dict, List
 from uuid import UUID
 
+from app.api.deps import (
+    get_user_repository,
+    get_current_user,
+    get_user_service,
+    get_music_provider
+)
+from app.domain.music.interfaces.music_data_provider import IMusicDataProvider
 from app.models.user import User
+from app.repositories.user import SQLAlchemyUserRepository
+from app.schemas.track import Track
 from app.schemas.user import UserCreate, User as UserOut 
-from app.api.deps import get_db_session, get_current_user
+from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -19,14 +25,11 @@ router = APIRouter(prefix="/users", tags=["Users"])
 )
 async def create_user(
     user: UserCreate,
-    db: AsyncSession = Depends(get_db_session)
-) -> User:
+    repo: SQLAlchemyUserRepository = Depends(get_user_repository),
+) -> UserOut:
     """Create a new user"""
-    db_user = User(**user.model_dump())
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+    created_user = await repo.create(user)
+    return UserOut.model_validate(created_user)
 
 
 @router.get("/me", response_model=UserOut)
@@ -39,57 +42,25 @@ async def get_current_user_info(
 @router.get("/{user_id:uuid}", response_model=UserOut)
 async def read_user(
     user_id: UUID, 
-    db: AsyncSession = Depends(get_db_session)
-) -> User:
-    result = await db.execute(
-        select(User)
-        .where(User.id == str(user_id))
-    )
-    user = result.scalar_one_or_none()
-    if user is None:
+    repo: SQLAlchemyUserRepository = Depends(get_user_repository)
+) -> UserOut:
+    user = await repo.get_by_id(str(user_id))
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return UserOut.model_validate(user)
 
 
 @router.get("/{user_id:uuid}/summary")
 async def get_user_summary(
-    user_id: UUID, 
-    db: AsyncSession = Depends(get_db_session)
+    user_id: UUID,
+    repo: SQLAlchemyUserRepository = Depends(get_user_repository),    
+    # service: UserService = Depends(get_user_service)
 ) -> Dict[str, Any]:
     """Get user summary with basic statistics"""
-    user = (await db.scalars(
-        select(User)
-        .options(selectinload(User.listening_events))
-        .where(User.id == str(user_id))
-    )).first()
-
-    # result = await db.execute(
-    #     select(User)
-    #     .options(selectinload(User.listening_events))
-    #     .where(User.id == str(user_id))
-    # )
-    
-    # # DEBUG:
-    # row = result.fetchone()
-    # print("ROW:", row)
-    
-    # user = result.scalars().first()
-    # # user = result.scalar_one_or_none()   
-    # # user = row[0] if row else None 
-
-    # # TEMP:
-    # # Fallback for test context identity mismatch
-    # if user is None:
-    #     row = result.first()
-    #     if row:
-    #         user = row[0]
-    
-    # DEBUG:
-    print("LOADED USER:", user)
-
-    if not user:
+    # return await service.get_user_summary(str(user_id))
+    user = await repo.get_by_id(str(user_id))
+    if user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    
     return {
         "user": UserOut.model_validate(user),
         "stats": {
@@ -97,3 +68,12 @@ async def get_user_summary(
             "member_since": user.created_at
         }
     }
+
+
+@router.get("{user_id:uuid}/top-tracks")
+async def get_user_top_tracks(
+    user_id: UUID,
+    service: UserService = Depends(get_user_service),
+    provider: IMusicDataProvider = Depends(get_music_provider)
+) -> List[Track]:
+    return await service.get_user_top_tracks(str(user_id), provider)

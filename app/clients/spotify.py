@@ -10,7 +10,7 @@ class SpotifyClient:
     BASE_URL = SPOTIFY_API_BASE_URL
     TOKEN_URL = SPOTIFY_TOKEN_URL
 
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings) -> None:
         self._settings = settings
         self._access_token: Optional[str] = None
 

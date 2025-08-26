@@ -37,7 +37,8 @@ app.add_middleware(
 
 
 @app.get("/")
-async def root() -> dict:
+# async def root() -> dict:
+def root() -> dict:
     return {
         "message": "Music Analysis System API", 
         "version": "0.1.0",
@@ -51,7 +52,8 @@ async def root() -> dict:
 
 
 @app.get("/health")
-async def health_check() -> dict:
+# async def health_check() -> dict:
+def health_check() -> dict:
     return {
         "status": "healthy",
         "timestamp": str(datetime.datetime.now())

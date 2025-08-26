@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class MusicProvider(ABC):
+class IMusicProvider(ABC):
     @abstractmethod
     def get_login_url(self, state: str) -> str:
         """Generate the login URL for the music provider."""

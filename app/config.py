@@ -4,6 +4,8 @@ from typing import Optional
 import os
 import logging
 
+from app.constants.routes import API_PREFIX
+
 __all__ = ["settings"]
 
 logging.basicConfig(level=logging.DEBUG)
@@ -23,7 +25,8 @@ class Settings(BaseSettings):
     redis_url: str = Field(..., description="Redis connection URI")
 
     # --- API ---
-    api_v1_prefix: str = "/api/v1"
+    # api_v1_prefix: str = "/api/v1"
+    api_v1_prefix: str = API_PREFIX
     debug: bool = False
     secret_key: str = Field(..., min_length=16)
     algorithm: str = "HS256"

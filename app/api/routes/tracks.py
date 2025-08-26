@@ -1,33 +1,27 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.models.track import Track as TrackModel
+from app.api.deps import get_track_repository
 from app.schemas.track import Track, TrackCreate
-from app.api.deps import get_db_session
+from app.repositories.track import TrackRepository
 
 router = APIRouter(prefix="/tracks", tags=["Tracks"])
 
 
-@router.post("/", response_model=Track, status_code=201)
+@router.post("/", response_model=Track, status_code=status.HTTP_201_CREATED)
 async def create_track(
     track: TrackCreate,
-    db: AsyncSession = Depends(get_db_session)
-) -> TrackModel:
-    db_track = TrackModel(**track.model_dump())
-    db.add(db_track)
-    await db.commit()
-    await db.refresh(db_track)
-    return db_track
+    repo: TrackRepository = Depends(get_track_repository)
+) -> Track:
+    created = await repo.get_or_create(track)
+    return Track.model_validate(created)
 
 
 @router.get("/{track_id}", response_model=Track)
 async def get_track(
-    track_id: str, 
-    db: AsyncSession = Depends(get_db_session)
-) -> TrackModel:
-    result = await db.execute(select(TrackModel).where(TrackModel.id == track_id))
-    track = result.scalar_one_or_none()
-    if not track:
+    track_id: str,
+    repo: TrackRepository = Depends(get_track_repository)
+) -> Track:
+    found = await repo.get_by_id(track_id)
+    if not found:
         raise HTTPException(status_code=404, detail="Track not found")
-    return track
+    return Track.model_validate(found)
